@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GridCI: live theft-detection simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap">
+<style>
+:root{--bg:#eef2f7;--panel:#fff;--line:#d3dbe8;--ink:#0f1a2b;--mute:#5b6b85;--flow:#0a7fbf;--red:#d6293c;--amber:#b87800;--green:#12865a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0b101a;--panel:#111a29;--line:#22304a;--ink:#e7edf7;--mute:#8a9ab4;--flow:#5cc8ff;--red:#ff5d6c;--amber:#f5b942;--green:#3ddc97}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0b101a;--panel:#111a29;--line:#22304a;--ink:#e7edf7;--mute:#8a9ab4;--flow:#5cc8ff;--red:#ff5d6c;--amber:#f5b942;--green:#3ddc97}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Manrope,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1380px;margin:0 auto;padding:18px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;margin-bottom:14px}
+h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em}
+h1 small{display:block;font-size:13px;font-weight:500;color:var(--mute);letter-spacing:0}
+.clock{font-size:22px;font-weight:700}
+.clock span{color:var(--mute);font-size:13px;font-weight:500;margin-right:8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+button,select{font:inherit;font-weight:700;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--flow)}button:focus-visible,select:focus-visible{outline:2px solid var(--flow);outline-offset:2px}
+button.go{background:var(--flow);color:#04121c;border-color:var(--flow)}
+button.bad{border-color:var(--red);color:var(--red)}button.warn{border-color:var(--amber);color:var(--amber)}
+label{color:var(--mute);display:flex;gap:6px;align-items:center;font-weight:500}
+.sp{flex:1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.kpi b{display:block;font-size:22px;font-weight:800}.kpi span{color:var(--mute);font-size:12px}
+.main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+@media(max-width:980px){.main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.card h2{margin:0 0 8px;font-size:15px;font-weight:700}
+.card h2 span{color:var(--mute);font-weight:500;font-size:12px;margin-left:8px}
+.pipe{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.pipe i{font-style:normal;font-size:12px;font-weight:700;padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--mute);transition:.15s}
+.pipe i.on{background:var(--flow);color:#04121c;border-color:var(--flow)}
+.pipe i.off{opacity:.35}
+svg{display:block;width:100%;height:auto}
+.flow{stroke:var(--flow);stroke-width:2;stroke-dasharray:5 7;animation:fl 1.1s linear infinite;opacity:.75}
+@keyframes fl{to{stroke-dashoffset:-12}}
+@media(prefers-reduced-motion:reduce){.flow{animation:none}}
+.edge{stroke:var(--line);stroke-width:1.5}
+.lbl{fill:var(--mute);font-size:11px;font-weight:700}
+.gt{stroke-dasharray:3 3;stroke:var(--ink);stroke-width:1.5;fill:none}
+.tr{display:grid;gap:6px;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer}
+.tr.sel{border-color:var(--flow)}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.pill{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;color:#fff}
+.Red{background:var(--red)}.Amber{background:var(--amber);color:#1a1200}.Green{background:var(--green);color:#03170e}
+.sub{color:var(--mute);font-size:12px}
+.sus{display:grid;grid-template-columns:110px 1fr 38px;gap:8px;align-items:center;font-size:12px}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.meter div{height:100%;background:var(--red)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
+.log{list-style:none;margin:0;padding:0;max-height:170px;overflow:auto;font-size:13px}
+.log li{padding:4px 0;border-bottom:1px solid var(--line)}.log li b{color:var(--flow)}
+.note{color:var(--mute);font-size:12px;margin-top:10px}
+#tabs{position:fixed;top:0;left:0;right:0;height:46px;z-index:20;display:flex;align-items:center;gap:6px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+#tabs b{margin-right:10px;color:var(--flow)}#tabs button{background:none;border:1px solid transparent;color:var(--mute);border-radius:8px;padding:7px 14px;font:inherit;font-weight:700;cursor:pointer}
+#tabs button:hover{color:var(--ink)}#tabs button.on{color:var(--ink);background:#162338;border-color:var(--flow)}
+.wrap{padding-top:58px}#views iframe{position:fixed;top:46px;left:0;width:100%;height:calc(100% - 46px);border:0;background:var(--bg);visibility:hidden;z-index:10}#views iframe.on{visibility:visible}
+</style></head><body><div id="tabs"><b>GridCI</b><button class="on" data-v="">Dashboard</button><button data-v="v-graph">Graph</button><button data-v="v-city">City Network</button><button data-v="v-er">ER Diagram</button></div>
+<div class="wrap">
+<header>
+ <h1>GridCI<small>Continuous integration for the electricity network · Team Asymptote · Vedathon 2.0</small></h1>
+ <div class="clock"><span id="day"></span><b id="clk">06:00</b></div>
+</header>
+<div class="bar">
+ <button class="go" id="play">Play</button>
+ <select id="spd" aria-label="Speed"><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option></select>
+ <button class="bad" id="bTheft">Bypass a meter</button>
+ <button class="warn" id="bTap">Add unmetered tap</button>
+ <button class="warn" id="bDrift">Drift a meter</button>
+ <button id="demo">Run judge demo</button>
+ <button id="reset">Reset</button>
+ <span class="sp"></span>
+ <label><input type="checkbox" id="auto"> Auto-dispatch crews</label>
+ <label><input type="checkbox" id="gt"> Show hidden faults</label>
+</div>
+<div class="kpis">
+ <div class="kpi"><b id="k1">0 kW</b><span>Unaccounted energy now</span></div>
+ <div class="kpi"><b id="k2">0</b><span>Open cases</span></div>
+ <div class="kpi"><b id="k3">0</b><span>Confirmed labels</span></div>
+ <div class="kpi"><b id="k4">₹0</b><span>Recovered per month</span></div>
+ <div class="kpi"><b id="k5">0%</b><span>Feeder loss, last 24 windows</span></div>
+</div>
+<div class="pipe" id="pipe"></div>
+<div class="main">
+ <div class="card"><h2>Network <span>feeder → transformer → branch → home, 48 smart meters</span></h2>
+  <svg id="net" viewBox="0 0 700 450" role="img" aria-label="Distribution network map"></svg>
+  <p class="note">Ring size on a branch or home shows localization confidence. Click a transformer to inspect its balance test.</p></div>
+ <div class="card"><h2>Verdicts <span>unit tests agree with balance test?</span></h2><div id="panel"></div></div>
+</div>
+<div class="charts">
+ <div class="card"><h2 id="cAt">Balance test residual</h2><svg id="cA" viewBox="0 0 400 140"></svg><p class="note">Residual = input − home sum − estimated loss. Dashed lines are the red and drift limits.</p></div>
+ <div class="card"><h2>Feeder energy <span>input vs metered, red gap is unaccounted</span></h2><svg id="cB" viewBox="0 0 400 140"></svg></div>
+ <div class="card"><h2>Run log</h2><ul class="log" id="log"></ul></div>
+</div>
+</div>
+<div id="views"><iframe id="v-graph" title="Live graphs" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot; data-theme=&quot;dark&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1, viewport-fit=cover&quot;&gt;
+&lt;title&gt;GridCI Live Simulation&lt;/title&gt;
+&lt;link rel=&quot;icon&quot; href=&quot;data:image/svg+xml,&lt;svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27&gt;&lt;text y=%27.9em%27 font-size=%2790%27&gt;⚡&lt;/text&gt;&lt;/svg&gt;&quot;&gt;
+&lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;style&gt;
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#eef3f8;--card:#fff;--tx:#0e1a2b;--mut:#5b6b80;--bd:#d3dce8;--acc:#0084b4;--g:#1f9d55;--a:#d98a00;--r:#d6342c}
+:root:not([data-theme=&quot;light&quot;]){}
+@media (prefers-color-scheme:dark){:root:not([data-theme=&quot;light&quot;]){color-scheme:dark;--bg:#070d17;--card:#0f1928;--tx:#e8eef7;--mut:#8fa1b8;--bd:#22324a;--acc:#44c2fd;--g:#35d07f;--a:#ffb020;--r:#ff5a4f}}
+:root[data-theme=&quot;dark&quot;]{color-scheme:dark;--bg:#070d17;--card:#0f1928;--tx:#e8eef7;--mut:#8fa1b8;--bd:#22324a;--acc:#44c2fd;--g:#35d07f;--a:#ffb020;--r:#ff5a4f}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 &quot;Hanken Grotesk&quot;,system-ui,-apple-system,&quot;Segoe UI&quot;,sans-serif}
+.w{max-width:1280px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin-bottom:14px}
+h1{font-size:clamp(26px,4vw,40px);font-weight:300;letter-spacing:-.02em;margin:0}h1 b{font-weight:600}
+.sub{color:var(--mut);margin:2px 0 0}
+.clock{font-variant-numeric:tabular-nums;color:var(--acc);font-size:18px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+button,select{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:7px 11px;cursor:pointer}
+button:hover{border-color:var(--acc)}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button.p{background:var(--acc);border-color:var(--acc);color:#04121e;font-weight:600}
+button.d{border-color:var(--r);color:var(--r)}
+.sep{width:1px;height:26px;background:var(--bd)}
+.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;min-width:0}
+.k .n{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}.k .l{color:var(--mut);font-size:12px}
+.g{display:grid;gap:12px;grid-template-columns:repeat(12,1fr);margin-bottom:12px}
+.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
+@media(max-width:900px){.g&gt;*{grid-column:span 12}}
+h2{font-size:15px;margin:0 0 2px;font-weight:600}.h{color:var(--mut);font-size:12px;margin:0 0 8px}
+.cv{position:relative;height:230px}
+.tx{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.t{border:1px solid var(--bd);border-radius:10px;padding:10px;cursor:pointer;border-left-width:5px}
+.t.sel{outline:2px solid var(--acc)}
+.t.green{border-left-color:var(--g)}.t.amber{border-left-color:var(--a)}.t.red{border-left-color:var(--r)}
+.t h3{margin:0;font-size:14px;display:flex;justify-content:space-between}
+.br{display:flex;gap:4px;align-items:center;margin-top:7px;flex-wrap:wrap}
+.br small{width:100%;color:var(--mut)}
+.d{width:15px;height:15px;border-radius:4px;background:var(--g);opacity:.55}
+.d.drift{background:var(--a);opacity:1}.d.theft{background:var(--r);opacity:1}.d.lowuse{background:var(--acc);opacity:1}
+.tap{font-size:11px;color:var(--a);margin-left:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--bd)}th{color:var(--mut);font-weight:500}
+.tb{overflow-x:auto}
+.pill{padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid currentColor}
+.pill.theft{color:var(--r)}.pill.drift,.pill.tap{color:var(--a)}
+#log{max-height:230px;overflow:auto;margin:0;padding:0;list-style:none;font-size:13px}
+#log li{padding:4px 0;border-bottom:1px solid var(--bd)}#log time{color:var(--mut);margin-right:6px}
+.lg{display:flex;gap:12px;flex-wrap:wrap;color:var(--mut);font-size:12px;margin-top:8px}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
+input[type=range]{accent-color:var(--acc)}
+header,.k,.lg,.c:has(#net),.c:has(#log),.c:has(table),.bar&gt;*:not(#pp):not(label){display:none!important}
+.bar{margin-top:0}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class=&quot;w&quot;&gt;
+&lt;header&gt;&lt;div&gt;&lt;h1&gt;&lt;b&gt;GridCI&lt;/b&gt; live grid simulation&lt;/h1&gt;
+&lt;p class=&quot;sub&quot;&gt;A synthetic low-voltage network: every hour of readings is a commit, every transformer is a build.&lt;/p&gt;&lt;/div&gt;
+&lt;div class=&quot;clock&quot; id=&quot;clock&quot;&gt;&lt;/div&gt;&lt;/header&gt;
+
+&lt;div class=&quot;bar&quot;&gt;
+&lt;button class=&quot;p&quot; id=&quot;pp&quot;&gt;Pause&lt;/button&gt;
+&lt;label&gt;Speed &lt;input type=&quot;range&quot; id=&quot;sp&quot; min=&quot;1&quot; max=&quot;8&quot; value=&quot;2&quot;&gt;&lt;/label&gt;
+&lt;span class=&quot;sep&quot;&gt;&lt;/span&gt;
+&lt;select id=&quot;selT&quot; aria-label=&quot;Target transformer&quot;&gt;&lt;/select&gt;
+&lt;button id=&quot;i1&quot;&gt;Add meter tampering&lt;/button&gt;&lt;button id=&quot;i2&quot;&gt;Add direct tap&lt;/button&gt;
+&lt;button id=&quot;i3&quot;&gt;Add meter drift&lt;/button&gt;&lt;button id=&quot;i4&quot;&gt;Add holiday home&lt;/button&gt;
+&lt;span class=&quot;sep&quot;&gt;&lt;/span&gt;
+&lt;button class=&quot;p&quot; id=&quot;disp&quot;&gt;Inspect top suspect&lt;/button&gt;
+&lt;button id=&quot;bench&quot;&gt;Compare strategies&lt;/button&gt;
+&lt;button class=&quot;d&quot; id=&quot;rst&quot;&gt;Reset&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;k&quot;&gt;
+&lt;div class=&quot;c&quot;&gt;&lt;div class=&quot;n&quot; id=&quot;k1&quot;&gt;0&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Unexplained energy now (kW)&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c&quot;&gt;&lt;div class=&quot;n&quot; id=&quot;k2&quot;&gt;0&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Ranked suspects&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c&quot;&gt;&lt;div class=&quot;n&quot; id=&quot;k3&quot;&gt;0&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Honest homes cleared (low usage)&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c&quot;&gt;&lt;div class=&quot;n&quot; id=&quot;k4&quot;&gt;0&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Energy lost so far (kWh)&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c&quot;&gt;&lt;div class=&quot;n&quot; id=&quot;k5&quot;&gt;₹0&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Revenue lost so far&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c&quot;&gt;&lt;div class=&quot;n&quot; id=&quot;k6&quot;&gt;0&lt;/div&gt;&lt;div class=&quot;l&quot;&gt;Inspections done / fixes verified&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;c&quot; style=&quot;margin-bottom:12px&quot;&gt;&lt;h2&gt;Network build status&lt;/h2&gt;
+&lt;p class=&quot;h&quot;&gt;Feeder → Transformer → Branch → Home. Click a transformer to follow it in the charts.&lt;/p&gt;
+&lt;div class=&quot;tx&quot; id=&quot;net&quot;&gt;&lt;/div&gt;
+&lt;div class=&quot;lg&quot;&gt;&lt;span&gt;&lt;i style=&quot;background:var(--g)&quot;&gt;&lt;/i&gt;Healthy home&lt;/span&gt;&lt;span&gt;&lt;i style=&quot;background:var(--r)&quot;&gt;&lt;/i&gt;Theft (both tests agree)&lt;/span&gt;&lt;span&gt;&lt;i style=&quot;background:var(--a)&quot;&gt;&lt;/i&gt;Meter drift&lt;/span&gt;&lt;span&gt;&lt;i style=&quot;background:var(--acc)&quot;&gt;&lt;/i&gt;Genuine low usage&lt;/span&gt;&lt;span&gt;Amber tag on a branch: unmetered tap&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;g&quot;&gt;
+&lt;div class=&quot;c s7&quot;&gt;&lt;h2&gt;Residual and CUSUM, selected transformer&lt;/h2&gt;&lt;p class=&quot;h&quot;&gt;Residual = input − meters − estimated loss. A fix should pull it back down.&lt;/p&gt;&lt;div class=&quot;cv&quot;&gt;&lt;canvas id=&quot;c1&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c s5&quot;&gt;&lt;h2&gt;Energy balance per transformer&lt;/h2&gt;&lt;p class=&quot;h&quot;&gt;Latest hour, kW. The red slice is the missing energy.&lt;/p&gt;&lt;div class=&quot;cv&quot;&gt;&lt;canvas id=&quot;c2&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;g&quot;&gt;
+&lt;div class=&quot;c s4&quot;&gt;&lt;h2&gt;Where the lost energy goes&lt;/h2&gt;&lt;p class=&quot;h&quot;&gt;Cumulative kWh by cause (ground truth)&lt;/p&gt;&lt;div class=&quot;cv&quot;&gt;&lt;canvas id=&quot;c3&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c s8&quot;&gt;&lt;h2&gt;What inspections find&lt;/h2&gt;&lt;p class=&quot;h&quot;&gt;Ten inspections per strategy on this exact network. Inject faults, then press Compare strategies.&lt;/p&gt;&lt;div class=&quot;cv&quot;&gt;&lt;canvas id=&quot;c4&quot;&gt;&lt;/canvas&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;g&quot;&gt;
+&lt;div class=&quot;c s7&quot;&gt;&lt;h2&gt;Ranked suspects and inspection route&lt;/h2&gt;&lt;p class=&quot;h&quot;&gt;Ordered by expected recovery × confidence.&lt;/p&gt;&lt;div class=&quot;tb&quot;&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;#&lt;/th&gt;&lt;th&gt;Target&lt;/th&gt;&lt;th&gt;Diagnosis&lt;/th&gt;&lt;th&gt;Confidence&lt;/th&gt;&lt;th&gt;Recovery (kW)&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody id=&quot;sus&quot;&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;c s5&quot;&gt;&lt;h2&gt;Event log&lt;/h2&gt;&lt;p class=&quot;h&quot;&gt;Faults, detections, field findings and verification.&lt;/p&gt;&lt;ul id=&quot;log&quot;&gt;&lt;/ul&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;p class=&quot;h&quot;&gt;Synthetic data. Results need validation on real utility networks, as the slides state.&lt;/p&gt;
+&lt;/div&gt;
+&lt;script&gt;
+const TN=4,BN=2,HN=6,PRICE=8;
+let tick=0,run=true,selT=0,homes,br,tr,lost,kp,logs,ver,tShock=0,timer;
+const rnd=(a=1)=&gt;Math.random()*a,gs=()=&gt;(rnd()+rnd()+rnd()-1.5)*1.15,$=id=&gt;document.getElementById(id);
+const L=s=&gt;.03*s+.004*s*s;
+function init(){homes=[];br=[];tr=Array.from({length:TN},()=&gt;({cus:0,res:0,rh:[],ch:[],inp:0,met:0,loss:0,st:&#x27;green&#x27;}));
+for(let t=0;t&lt;TN;t++)for(let b=0;b&lt;BN;b++){br.push({t,b,tap:0,cus:0,fail:false,res:0,un:0});
+for(let h=0;h&lt;HN;h++)homes.push({id:homes.length,t,b,base:.5+rnd(.9),mf:1,f:null,ew:1,hist:[],lat:false,cls:null,fc:0,dx:&#x27;ok&#x27;,rec:0})}
+lost={tap:0,tamper:0,drift:0};kp={insp:0,fix:0};logs=[];ver=null;tick=0;log(&#x27;Simulation started: 4 transformers, 8 branches, 48 homes.&#x27;)}
+function log(m){const h=String(tick%24).padStart(2,&#x27;0&#x27;);logs.unshift(`&lt;li&gt;&lt;time&gt;D${Math.floor(tick/24)+1} ${h}:00&lt;/time&gt;${m}&lt;/li&gt;`);logs=logs.slice(0,40)}
+const hn=h=&gt;`T${h.t+1}-B${h.b+1}-H${h.id%HN+1}`,bn=b=&gt;`T${b.t+1}-B${b.b+1}`;
+function step(){
+const hr=tick%24,prof=.5+.35*Math.exp(-((hr-8)**2)/6)+.9*Math.exp(-((hr-20)**2)/8);
+const temp=28+8*Math.sin((hr-9)/24*6.283)+tShock,tf=1+.02*(temp-28);
+tr.forEach(x=&gt;{x.inp=0;x.met=0;x.loss=0;x.res=0});
+br.forEach((B,bi)=&gt;{let S=B.tap,M=0,rec=0;
+homes.filter(h=&gt;h.t===B.t&amp;&amp;h.b===B.b).forEach(h=&gt;{
+ let tru=h.base*prof*tf*(1+gs()*.08);if(h.f===&#x27;holiday&#x27;)tru*=.15;
+ if(h.f===&#x27;drift&#x27;)h.mf=Math.max(.55,h.mf-.004);
+ const met=tru*h.mf;S+=tru;M+=met;
+ if(h.f===&#x27;tamper&#x27;)lost.tamper+=tru-met;if(h.f===&#x27;drift&#x27;)lost.drift+=tru-met;
+ const exp=h.base*prof*tf,ratio=Math.min(1.5,met/exp);
+ h.ew=.7*h.ew+.3*ratio;h.hist.push(h.ew);if(h.hist.length&gt;13)h.hist.shift();
+ const fail=h.ew&lt;.75;
+ if(fail&amp;&amp;!h.lat){h.lat=true;h.cls=(h.hist[0]-h.ew&gt;.2)?&#x27;step&#x27;:&#x27;grad&#x27;}
+ if(h.ew&gt;.9)h.lat=false;
+ h.fc=fail?h.fc+1:0;h.rec=Math.max(0,exp-met);h._B=B});
+lost.tap+=B.tap;
+const inp=(S+L(S))*(1+gs()*.008),res=inp-M-L(M);
+B.res=res;const r=res/inp;B.cus=Math.max(0,B.cus+r-.025);B.fail=B.cus&gt;.06;B.inp=inp;B.met=M;B.loss=L(M);
+const T=tr[B.t];T.inp+=inp;T.met+=M;T.loss+=L(M);T.res+=res});
+homes.forEach(h=&gt;{const B=br[h.t*BN+h.b];h.dx=&#x27;ok&#x27;;
+ if(h.lat&amp;&amp;h.fc&gt;=3){if(h.cls===&#x27;grad&#x27;)h.dx=&#x27;drift&#x27;;else h.dx=B.fail?&#x27;theft&#x27;:&#x27;lowuse&#x27;}});
+br.forEach(B=&gt;{const ex=homes.filter(h=&gt;h.t===B.t&amp;&amp;h.b===B.b&amp;&amp;(h.dx===&#x27;theft&#x27;||h.dx===&#x27;drift&#x27;)).reduce((s,h)=&gt;s+h.rec,0);
+ B.un=Math.max(0,B.res-ex);B.istap=B.fail&amp;&amp;B.un&gt;.6});
+tr.forEach((T,i)=&gt;{const r=T.res/T.inp;T.cus=Math.max(0,T.cus+r-.025);
+ T.rh.push(+(r*100).toFixed(1));T.ch.push(+(T.cus*100).toFixed(1));if(T.rh.length&gt;60){T.rh.shift();T.ch.shift()}
+ const hs=homes.filter(h=&gt;h.t===i),bs=br.filter(b=&gt;b.t===i);
+ T.st=hs.some(h=&gt;h.dx===&#x27;theft&#x27;)?&#x27;red&#x27;:(hs.some(h=&gt;h.dx===&#x27;drift&#x27;)||bs.some(b=&gt;b.istap))?&#x27;amber&#x27;:&#x27;green&#x27;});
+detect();
+if(ver&amp;&amp;tick-ver.at&gt;=8){const a=avg(tr[ver.t].rh.slice(-6));log(`Fix verified on T${ver.t+1}: residual ${ver.b.toFixed(1)}% → ${a.toFixed(1)}%.`);kp.fix++;ver=null}
+tick++}
+const avg=a=&gt;a.reduce((s,x)=&gt;s+x,0)/(a.length||1);
+const seen={};
+function detect(){homes.forEach(h=&gt;{const k=&#x27;h&#x27;+h.id+h.dx;if(h.dx!==&#x27;ok&#x27;&amp;&amp;!seen[k]){seen[k]=1;
+ log(h.dx===&#x27;theft&#x27;?`&lt;b&gt;Theft suspected&lt;/b&gt; at ${hn(h)}: routine and balance tests agree.`:h.dx===&#x27;drift&#x27;?`Meter drift flagged at ${hn(h)}.`:`${hn(h)} has low usage but the balance holds: cleared, no inspection.`)}});
+br.forEach(B=&gt;{const k=&#x27;b&#x27;+B.t+B.b+B.istap;if(B.istap&amp;&amp;!seen[k]){seen[k]=1;log(`Unmetered tap suspected on branch ${bn(B)}: localized to branch level.`)}})}
+function suspects(){const s=[];
+homes.forEach(h=&gt;{if(h.dx===&#x27;theft&#x27;||h.dx===&#x27;drift&#x27;)s.push({k:&#x27;h&#x27;,id:h.id,name:hn(h),dx:h.dx,conf:Math.min(.99,.5+.5*Math.min(1,(.75-h.ew)/.5)),rec:h.rec})});
+br.forEach((B,i)=&gt;{if(B.istap)s.push({k:&#x27;b&#x27;,id:i,name:&#x27;Branch &#x27;+bn(B),dx:&#x27;tap&#x27;,conf:Math.min(.95,.5+B.cus*3),rec:B.un})});
+return s.sort((a,b)=&gt;b.rec*b.conf-a.rec*a.conf)}
+function outcome(s){if(s.k===&#x27;b&#x27;)return br[s.id].tap&gt;0?0:2;const h=homes[s.id];return(h.f===&#x27;tamper&#x27;||h.f===&#x27;drift&#x27;)?0:h.f===&#x27;holiday&#x27;?1:2}
+function pick(n,arr){const a=arr.slice(),o=[];while(o.length&lt;n&amp;&amp;a.length)o.push(a.splice(Math.floor(rnd(a.length)),1)[0]);return o}
+function bench(){const n=10,hm=homes.map(h=&gt;({k:&#x27;h&#x27;,id:h.id}));
+if(!homes.some(h=&gt;h.f===&#x27;tamper&#x27;||h.f===&#x27;drift&#x27;)&amp;&amp;!br.some(b=&gt;b.tap&gt;0)){log(&#x27;Inject at least one theft or meter fault before comparing strategies.&#x27;);return}
+const avgRun=fn=&gt;{const c=[0,0,0];for(let t=0;t&lt;300;t++)pick(n,fn()).forEach(s=&gt;c[outcome(s)]++);return c.map(x=&gt;x/300/n*100)};
+const det=list=&gt;{const c=[0,0,0];list.slice(0,n).forEach(s=&gt;c[outcome(s)]++);const m=list.slice(0,n).length||1;return c.map(x=&gt;x/m*100)};
+const flagT=tr.map((t,i)=&gt;br.some(b=&gt;b.t===i&amp;&amp;b.fail));
+const rnr=avgRun(()=&gt;hm),bal=avgRun(()=&gt;{const f=hm.filter(s=&gt;flagT[homes[s.id].t]);return f.length?f:hm});
+const rou=det(homes.slice().sort((a,b)=&gt;a.ew-b.ew).map(h=&gt;({k:&#x27;h&#x27;,id:h.id})));
+const gc=det(suspects());
+const D=[rnr,bal,rou,gc];[0,1,2].forEach(i=&gt;{c4.data.datasets[i].data=D.map(d=&gt;+d[i].toFixed(0))});c4.update();log(&#x27;Strategy comparison updated.&#x27;)}
+function dispatch(){const s=suspects()[0];if(!s){log(&#x27;No ranked suspects yet. Nothing to inspect.&#x27;);return}
+kp.insp++;let t;
+if(s.k===&#x27;b&#x27;){const B=br[s.id];t=B.t;ver={t,at:tick,b:avg(tr[t].rh.slice(-6))};B.tap=0;B.cus=0;log(`&lt;b&gt;Field team&lt;/b&gt; found an illegal tap on ${bn(B)} and removed it.`)}
+else{const h=homes[s.id];t=h.t;ver={t,at:tick,b:avg(tr[t].rh.slice(-6))};log(`&lt;b&gt;Field team&lt;/b&gt; confirmed ${s.dx===&#x27;theft&#x27;?&#x27;tampering&#x27;:&#x27;a drifting meter&#x27;} at ${hn(h)}: meter replaced.`);h.f=null;h.mf=1;h.lat=false;h.fc=0;h.ew=1;h.hist=[];
+ br[h.t*BN+h.b].cus=0}
+tr[t].cus=0}
+function inject(type){const t=selT,bs=br.filter(b=&gt;b.t===t);
+if(type===&#x27;tap&#x27;){const B=bs[Math.floor(rnd(bs.length))];B.tap=1.4+rnd(.8);log(`Injected: direct tap on ${bn(B)} (hidden from meters).`);return}
+const c=homes.filter(h=&gt;h.t===t&amp;&amp;!h.f);if(!c.length)return;const h=c[Math.floor(rnd(c.length))];h.f=type;
+if(type===&#x27;tamper&#x27;)h.mf=.35;log(`Injected: ${type===&#x27;tamper&#x27;?&#x27;meter tampering&#x27;:type===&#x27;drift&#x27;?&#x27;meter drift&#x27;:&#x27;holiday (genuine low usage)&#x27;} at ${hn(h)}.`)}
+function render(){const hr=tick%24;$(&#x27;clock&#x27;).textContent=`Day ${Math.floor(tick/24)+1}, ${String(hr).padStart(2,&#x27;0&#x27;)}:00`;
+$(&#x27;net&#x27;).innerHTML=tr.map((T,i)=&gt;{const bs=br.filter(b=&gt;b.t===i);return`&lt;div class=&quot;t ${T.st}${i===selT?&#x27; sel&#x27;:&#x27;&#x27;}&quot; data-i=&quot;${i}&quot;&gt;&lt;h3&gt;&lt;span&gt;Transformer ${i+1}&lt;/span&gt;&lt;span class=&quot;pill ${T.st===&#x27;red&#x27;?&#x27;theft&#x27;:T.st===&#x27;amber&#x27;?&#x27;drift&#x27;:&#x27;&#x27;}&quot;&gt;${T.st}&lt;/span&gt;&lt;/h3&gt;
+&lt;div class=&quot;h&quot; style=&quot;margin:2px 0 0&quot;&gt;Input ${T.inp.toFixed(1)} kW · missing ${(T.res/T.inp*100).toFixed(1)}%&lt;/div&gt;`+
+bs.map(B=&gt;`&lt;div class=&quot;br&quot;&gt;&lt;small&gt;Branch ${B.b+1}${B.istap?&#x27;&lt;span class=&quot;tap&quot;&gt;unmetered tap suspected&lt;/span&gt;&#x27;:&#x27;&#x27;}&lt;/small&gt;${homes.filter(h=&gt;h.t===B.t&amp;&amp;h.b===B.b).map(h=&gt;`&lt;span class=&quot;d ${h.dx===&#x27;ok&#x27;?&#x27;&#x27;:h.dx}&quot; title=&quot;${hn(h)}: ${h.dx}&quot;&gt;&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;/div&gt;`).join(&#x27;&#x27;)+`&lt;/div&gt;`}).join(&#x27;&#x27;);
+document.querySelectorAll(&#x27;.t&#x27;).forEach(e=&gt;e.onclick=()=&gt;{selT=+e.dataset.i;$(&#x27;selT&#x27;).value=selT;render();charts()});
+const S=suspects(),un=tr.reduce((s,t)=&gt;s+t.res,0),lk=lost.tap+lost.tamper+lost.drift;
+$(&#x27;k1&#x27;).textContent=un.toFixed(1);$(&#x27;k2&#x27;).textContent=S.length;$(&#x27;k3&#x27;).textContent=homes.filter(h=&gt;h.dx===&#x27;lowuse&#x27;).length;
+$(&#x27;k4&#x27;).textContent=lk.toFixed(0);$(&#x27;k5&#x27;).textContent=&#x27;₹&#x27;+Math.round(lk*PRICE).toLocaleString(&#x27;en-IN&#x27;);$(&#x27;k6&#x27;).textContent=kp.insp+&#x27; / &#x27;+kp.fix;
+$(&#x27;sus&#x27;).innerHTML=S.length?S.slice(0,6).map((s,i)=&gt;`&lt;tr&gt;&lt;td&gt;${i+1}&lt;/td&gt;&lt;td&gt;${s.name}&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;pill ${s.dx}&quot;&gt;${s.dx===&#x27;tap&#x27;?&#x27;unmetered tap&#x27;:s.dx===&#x27;drift&#x27;?&#x27;meter drift&#x27;:&#x27;theft&#x27;}&lt;/span&gt;&lt;/td&gt;&lt;td&gt;${(s.conf*100).toFixed(0)}%&lt;/td&gt;&lt;td&gt;${s.rec.toFixed(2)}&lt;/td&gt;&lt;/tr&gt;`).join(&#x27;&#x27;):&#x27;&lt;tr&gt;&lt;td colspan=&quot;5&quot; style=&quot;color:var(--mut)&quot;&gt;All clear. Use the inject buttons to add a fault.&lt;/td&gt;&lt;/tr&gt;&#x27;;
+$(&#x27;log&#x27;).innerHTML=logs.join(&#x27;&#x27;);charts()}
+let c1,c2,c3,c4;
+function charts(){const T=tr[selT],lb=T.rh.map((_,i)=&gt;i-T.rh.length+1);
+c1.data.labels=lb;c1.data.datasets[0].data=T.rh;c1.data.datasets[1].data=T.ch;c1.update(&#x27;none&#x27;);
+c2.data.datasets[0].data=tr.map(t=&gt;+t.met.toFixed(1));c2.data.datasets[1].data=tr.map(t=&gt;+t.loss.toFixed(1));c2.data.datasets[2].data=tr.map(t=&gt;+Math.max(0,t.res).toFixed(1));c2.update(&#x27;none&#x27;);
+c3.data.datasets[0].data=[lost.tap,lost.tamper,lost.drift].map(x=&gt;+x.toFixed(1));c3.update(&#x27;none&#x27;)}
+function mk(){const css=getComputedStyle(document.documentElement),mut=css.getPropertyValue(&#x27;--mut&#x27;).trim(),bd=css.getPropertyValue(&#x27;--bd&#x27;).trim();
+Chart.defaults.color=mut;Chart.defaults.borderColor=bd;Chart.defaults.font.family=&#x27;system-ui,sans-serif&#x27;;Chart.defaults.maintainAspectRatio=false;
+const cl={acc:css.getPropertyValue(&#x27;--acc&#x27;).trim(),g:css.getPropertyValue(&#x27;--g&#x27;).trim(),a:css.getPropertyValue(&#x27;--a&#x27;).trim(),r:css.getPropertyValue(&#x27;--r&#x27;).trim()};
+const P={plugins:{legend:{position:&#x27;bottom&#x27;,labels:{boxWidth:10}}},animation:false};
+c1=new Chart($(&#x27;c1&#x27;),{type:&#x27;line&#x27;,data:{labels:[],datasets:[{label:&#x27;Residual %&#x27;,data:[],borderColor:cl.r,backgroundColor:cl.r+&#x27;22&#x27;,fill:true,pointRadius:0,tension:.3},{label:&#x27;CUSUM %&#x27;,data:[],borderColor:cl.acc,pointRadius:0,tension:.3,borderDash:[5,3]}]},options:{...P,scales:{x:{display:false},y:{title:{display:true,text:&#x27;% of input&#x27;}}}}});
+c2=new Chart($(&#x27;c2&#x27;),{type:&#x27;bar&#x27;,data:{labels:[&#x27;T1&#x27;,&#x27;T2&#x27;,&#x27;T3&#x27;,&#x27;T4&#x27;],datasets:[{label:&#x27;Metered&#x27;,data:[],backgroundColor:cl.acc},{label:&#x27;Technical loss&#x27;,data:[],backgroundColor:cl.a},{label:&#x27;Unexplained&#x27;,data:[],backgroundColor:cl.r}]},options:{...P,scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:&#x27;kW&#x27;}}}}});
+c3=new Chart($(&#x27;c3&#x27;),{type:&#x27;doughnut&#x27;,data:{labels:[&#x27;Direct tapping&#x27;,&#x27;Meter tampering&#x27;,&#x27;Meter drift&#x27;],datasets:[{data:[0,0,0],backgroundColor:[cl.r,cl.a,cl.acc],borderColor:css.getPropertyValue(&#x27;--card&#x27;).trim()}]},options:{...P,cutout:&#x27;60%&#x27;}});
+c4=new Chart($(&#x27;c4&#x27;),{type:&#x27;bar&#x27;,data:{labels:[&#x27;Random raids&#x27;,&#x27;Balance test only&#x27;,&#x27;Routine test only&#x27;,&#x27;GridCI (tests agree)&#x27;],datasets:[{label:&#x27;Cause found&#x27;,data:[0,0,0,0],backgroundColor:cl.g},{label:&#x27;Honest holiday home&#x27;,data:[0,0,0,0],backgroundColor:cl.a},{label:&#x27;Nothing found&#x27;,data:[0,0,0,0],backgroundColor:bd}]},options:{...P,scales:{x:{stacked:true},y:{stacked:true,max:100,title:{display:true,text:&#x27;% of inspections&#x27;}}}}})}
+function loop(){clearInterval(timer);if(run)timer=setInterval(()=&gt;{step();render()},900/ +$(&#x27;sp&#x27;).value)}
+$(&#x27;selT&#x27;).innerHTML=[0,1,2,3].map(i=&gt;`&lt;option value=&quot;${i}&quot;&gt;Transformer ${i+1}&lt;/option&gt;`).join(&#x27;&#x27;);
+$(&#x27;selT&#x27;).onchange=e=&gt;{selT=+e.target.value;render()};
+$(&#x27;pp&#x27;).onclick=()=&gt;{run=!run;$(&#x27;pp&#x27;).textContent=run?&#x27;Pause&#x27;:&#x27;Resume&#x27;;loop()};
+$(&#x27;sp&#x27;).oninput=loop;
+$(&#x27;i1&#x27;).onclick=()=&gt;{inject(&#x27;tamper&#x27;);render()};$(&#x27;i2&#x27;).onclick=()=&gt;{inject(&#x27;tap&#x27;);render()};
+$(&#x27;i3&#x27;).onclick=()=&gt;{inject(&#x27;drift&#x27;);render()};$(&#x27;i4&#x27;).onclick=()=&gt;{inject(&#x27;holiday&#x27;);render()};
+$(&#x27;disp&#x27;).onclick=()=&gt;{dispatch();render()};$(&#x27;bench&#x27;).onclick=bench;
+$(&#x27;rst&#x27;).onclick=()=&gt;{for(const k in seen)delete seen[k];init();for(let i=0;i&lt;30;i++)step();render();c4.data.datasets.forEach(d=&gt;d.data=[0,0,0,0]);c4.update()};
+mk();init();for(let i=0;i&lt;30;i++)step();render();loop();
+&lt;/script&gt;&lt;script&gt;/* feed the graphs: inject a fault every few seconds, then inspect and compare */
+[[5e3,&#x27;i1&#x27;],[12e3,&#x27;i2&#x27;],[20e3,&#x27;i4&#x27;],[27e3,&#x27;disp&#x27;],[34e3,&#x27;i3&#x27;],[42e3,&#x27;disp&#x27;],[50e3,&#x27;bench&#x27;]].forEach(([t,id])=&gt;setTimeout(()=&gt;document.getElementById(id)&amp;&amp;document.getElementById(id).click(),t));
+&lt;/script&gt;
+&lt;/body&gt;&lt;/html&gt;
+"></iframe><iframe id="v-city" title="City network" srcdoc="&lt;!DOCTYPE html&gt;&lt;html lang=&quot;en&quot; data-theme=&quot;dark&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;title&gt;GridCI city network&lt;/title&gt;
+&lt;style&gt;
+:root{--bg:#0b101a;--panel:#111a29;--line:#22304a;--ink:#e7edf7;--mute:#8a9ab4;--flow:#5cc8ff;--red:#ff5d6c;--amber:#f5b942;--green:#3ddc97;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--ink);font:13px/1.4 Manrope,system-ui,sans-serif;display:grid;grid-template-columns:230px 1fr 250px;gap:10px;padding:10px}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;min-height:0}
+h2{font-size:13px;margin:0 0 8px}h2 span{color:var(--mute);font-weight:400}
+.row{display:block;width:100%;text-align:left;background:none;border:0;color:inherit;padding:5px 4px;border-radius:6px;cursor:pointer;font:inherit}.row:hover,.row.on{background:#1a2840}
+.bar{height:5px;background:#1c2a42;border-radius:3px;margin-top:3px}.bar i{display:block;height:100%;border-radius:3px}
+#cv{width:100%;height:100%;display:block;cursor:pointer}.map{padding:0;position:relative}
+.lg{position:absolute;left:12px;bottom:10px;color:var(--mute);font-size:12px;display:flex;gap:12px}.lg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.hist{display:flex;align-items:flex-end;gap:8px;height:90px;margin:6px 0 4px}.hist div{flex:1;background:var(--flow);border-radius:4px 4px 0 0;position:relative;min-height:2px}.hist b{position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:11px;font-weight:500}
+.lab{display:flex;gap:8px}.lab span{flex:1;text-align:center;color:var(--mute);font-size:11px}
+@media(max-width:900px){body{grid-template-columns:1fr;height:auto}.map{height:60vh}}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;p&quot;&gt;&lt;h2&gt;Substations &lt;span id=&quot;n&quot;&gt;&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;list&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;p map&quot;&gt;&lt;canvas id=&quot;cv&quot;&gt;&lt;/canvas&gt;&lt;div class=&quot;lg&quot;&gt;&lt;span&gt;&lt;i style=&quot;background:var(--green)&quot;&gt;&lt;/i&gt;Normal&lt;/span&gt;&lt;span&gt;&lt;i style=&quot;background:var(--amber)&quot;&gt;&lt;/i&gt;Missing energy&lt;/span&gt;&lt;span&gt;&lt;i style=&quot;background:var(--red)&quot;&gt;&lt;/i&gt;Fault&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;p&quot;&gt;&lt;h2&gt;Selected node&lt;/h2&gt;&lt;div id=&quot;sel&quot; style=&quot;color:var(--mute)&quot;&gt;Click a node on the map or in the list.&lt;/div&gt;
+&lt;h2 style=&quot;margin-top:16px&quot;&gt;Load distribution &lt;span&gt;nodes per band&lt;/span&gt;&lt;/h2&gt;&lt;div class=&quot;hist&quot; id=&quot;hist&quot;&gt;&lt;/div&gt;&lt;div class=&quot;lab&quot;&gt;&lt;span&gt;&amp;lt;40%&lt;/span&gt;&lt;span&gt;40-60&lt;/span&gt;&lt;span&gt;60-80&lt;/span&gt;&lt;span&gt;80+&lt;/span&gt;&lt;/div&gt;
+&lt;h2 style=&quot;margin-top:16px&quot;&gt;Events&lt;/h2&gt;&lt;div id=&quot;ev&quot; style=&quot;color:var(--mute);max-height:150px;overflow:auto&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;script&gt;
+const N=[[&quot;Waterbury&quot;,.2,.3,91],[&quot;Hartford&quot;,.55,.12,84],[&quot;Springfield&quot;,.82,.08,95],[&quot;Manchester&quot;,.85,.3,69],[&quot;New Britain&quot;,.5,.33,47],[&quot;Middletown&quot;,.68,.5,73],[&quot;Bridgeport&quot;,.34,.5,78],[&quot;Meriden&quot;,.22,.62,55],[&quot;New Haven&quot;,.45,.68,66],[&quot;Stamford&quot;,.28,.84,88],[&quot;Norwalk&quot;,.14,.9,66],[&quot;Danbury&quot;,.08,.58,43],[&quot;Greenwich&quot;,.4,.95,59]].map((a,i)=&gt;({i,name:a[0],x:a[1],y:a[2],load:a[3],st:0}));
+const E=[[0,4],[0,6],[0,11],[1,2],[1,3],[1,4],[1,5],[3,5],[4,5],[6,7],[6,8],[7,8],[8,9],[8,5],[9,10],[9,12],[10,12],[0,1]];
+const cv=document.getElementById(&#x27;cv&#x27;),c=cv.getContext(&#x27;2d&#x27;);let W,H,sel=-1,t=0,dpr=devicePixelRatio||1;
+const col=n=&gt;n.st==2?&#x27;#ff5d6c&#x27;:n.st==1?&#x27;#f5b942&#x27;:&#x27;#3ddc97&#x27;,P=n=&gt;[30+n.x*(W-60),30+n.y*(H-60)];
+function fit(){const r=cv.parentNode.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;c.setTransform(dpr,0,0,dpr,0,0)}
+function log(m){const e=document.getElementById(&#x27;ev&#x27;);e.insertAdjacentHTML(&#x27;afterbegin&#x27;,&#x27;&lt;div&gt;&#x27;+new Date().toLocaleTimeString()+&#x27; &#x27;+m+&#x27;&lt;/div&gt;&#x27;);while(e.children.length&gt;30)e.lastChild.remove()}
+function draw(){c.clearRect(0,0,W,H);t+=.6;
+E.forEach(([a,b])=&gt;{const A=P(N[a]),B=P(N[b]),hot=sel==a||sel==b,bad=N[a].st||N[b].st;c.strokeStyle=hot?&#x27;#5cc8ff&#x27;:bad?&#x27;#f5b942&#x27;:&#x27;#2f4a63&#x27;;c.lineWidth=hot?2.2:1.2;c.setLineDash([6,8]);c.lineDashOffset=-t;c.beginPath();c.moveTo(...A);c.lineTo(...B);c.stroke()});c.setLineDash([]);
+N.forEach(n=&gt;{const[x,y]=P(n),r=6+n.load/18,k=col(n);c.beginPath();c.arc(x,y,r+5+(n.i==sel?3:0)+Math.sin(t/8+n.i)*1.5,0,7);c.fillStyle=k+&#x27;22&#x27;;c.fill();c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=&#x27;#0b101a&#x27;;c.fill();c.lineWidth=n.i==sel?3:2;c.strokeStyle=n.i==sel?&#x27;#fff&#x27;:k;c.stroke();c.fillStyle=&#x27;#e7edf7&#x27;;c.font=&#x27;12px Manrope,sans-serif&#x27;;c.textAlign=&#x27;center&#x27;;c.fillText(n.name,x,y+r+16);c.fillStyle=k;c.fillText(Math.round(n.load)+&#x27;%&#x27;,x,y+r+29)});
+requestAnimationFrame(draw)}
+function ui(){document.getElementById(&#x27;n&#x27;).textContent=N.length+&#x27; nodes&#x27;;document.getElementById(&#x27;list&#x27;).innerHTML=N.slice().sort((a,b)=&gt;b.load-a.load).map(n=&gt;`&lt;button class=&quot;row${n.i==sel?&#x27; on&#x27;:&#x27;&#x27;}&quot; data-i=&quot;${n.i}&quot;&gt;${n.name}&lt;span style=&quot;float:right;color:${col(n)}&quot;&gt;${Math.round(n.load)}%&lt;/span&gt;&lt;div class=&quot;bar&quot;&gt;&lt;i style=&quot;width:${n.load}%;background:${col(n)}&quot;&gt;&lt;/i&gt;&lt;/div&gt;&lt;/button&gt;`).join(&#x27;&#x27;);
+const h=[0,0,0,0];N.forEach(n=&gt;h[n.load&lt;40?0:n.load&lt;60?1:n.load&lt;80?2:3]++);document.getElementById(&#x27;hist&#x27;).innerHTML=h.map(v=&gt;`&lt;div style=&quot;height:${v*11}px&quot;&gt;&lt;b&gt;${v}&lt;/b&gt;&lt;/div&gt;`).join(&#x27;&#x27;);
+const n=N[sel];document.getElementById(&#x27;sel&#x27;).innerHTML=n?`&lt;b style=&quot;font-size:15px&quot;&gt;${n.name}&lt;/b&gt;&lt;br&gt;Load ${Math.round(n.load)}%&lt;br&gt;Status &lt;b style=&quot;color:${col(n)}&quot;&gt;${[&#x27;Normal&#x27;,&#x27;Missing energy&#x27;,&#x27;Fault&#x27;][n.st]}&lt;/b&gt;&lt;br&gt;Links: ${E.filter(e=&gt;e.includes(n.i)).map(e=&gt;N[e[0]==n.i?e[1]:e[0]].name).join(&#x27;, &#x27;)}`:&#x27;Click a node on the map or in the list.&#x27;}
+function pick(i){sel=i;ui()}
+cv.onclick=e=&gt;{const r=cv.getBoundingClientRect();let b=-1,d=28;N.forEach(n=&gt;{const[x,y]=P(n),q=Math.hypot(e.clientX-r.left-x,e.clientY-r.top-y);if(q&lt;d){d=q;b=n.i}});pick(b)};
+document.getElementById(&#x27;list&#x27;).onclick=e=&gt;{const b=e.target.closest(&#x27;.row&#x27;);if(b)pick(+b.dataset.i)};
+setInterval(()=&gt;{N.forEach(n=&gt;{n.load=Math.max(25,Math.min(97,n.load+(Math.random()-.5)*3))});ui()},1200);
+setInterval(()=&gt;{const n=N[Math.floor(Math.random()*N.length)];if(n.st){n.st=0;log(n.name+&#x27; cleared&#x27;)}else{n.st=Math.random()&lt;.2?2:1;log(n.name+(n.st==2?&#x27; fault&#x27;:&#x27; missing energy flagged&#x27;))}ui()},4000);
+addEventListener(&#x27;resize&#x27;,fit);fit();ui();draw();
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><iframe id="v-er" title="ER diagram" srcdoc="&lt;!DOCTYPE html&gt;&lt;html lang=&quot;en&quot; data-theme=&quot;dark&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;&lt;title&gt;GridCI ER diagram&lt;/title&gt;
+&lt;style&gt;
+:root{--bg:#0b101a;--panel:#111a29;--line:#22304a;--ink:#e7edf7;--mute:#8a9ab4;--flow:#5cc8ff;--green:#3ddc97;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--ink);font:13px/1.4 Manrope,system-ui,sans-serif;display:grid;grid-template-columns:1fr 250px;gap:10px;padding:10px}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;min-height:0}
+h2{font-size:13px;margin:0 0 8px}svg{width:100%;height:100%}.e rect{fill:#0f1928;stroke:#2c3f5e;stroke-width:1.3;transition:stroke .3s}.e text{fill:var(--ink);font-size:11px}.e .h{font-weight:700;font-size:12px}.e .k{fill:var(--mute)}.e{cursor:pointer}
+.e.on rect{stroke:var(--flow);stroke-width:2.4;filter:drop-shadow(0 0 8px #5cc8ff88)}.e.sel rect{stroke:#fff}.e .c{fill:var(--green);text-anchor:end;font-size:10px}
+.r{stroke:#2c4663;stroke-width:1.4;fill:none}.r.on{stroke:var(--flow);stroke-width:2.2}.card{fill:var(--mute);font-size:10px}
+button{background:#162338;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
+@media(max-width:900px){body{grid-template-columns:1fr;height:auto}svg{height:60vh}}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;p&quot; style=&quot;padding:6px&quot;&gt;&lt;svg id=&quot;s&quot; viewBox=&quot;0 0 980 580&quot;&gt;&lt;/svg&gt;&lt;/div&gt;
+&lt;div class=&quot;p&quot;&gt;&lt;h2&gt;Live run &lt;span style=&quot;color:var(--mute);font-weight:400&quot;&gt;one time window&lt;/span&gt;&lt;/h2&gt;&lt;div id=&quot;step&quot; style=&quot;color:var(--flow);margin-bottom:8px&quot;&gt;Starting&lt;/div&gt;&lt;button id=&quot;pp&quot;&gt;Pause&lt;/button&gt;
+&lt;h2 style=&quot;margin-top:16px&quot;&gt;Selected entity&lt;/h2&gt;&lt;div id=&quot;d&quot; style=&quot;color:var(--mute)&quot;&gt;Click an entity to see its columns.&lt;/div&gt;
+&lt;h2 style=&quot;margin-top:16px&quot;&gt;Data flow&lt;/h2&gt;&lt;div style=&quot;color:var(--mute)&quot;&gt;Each window enters as readings, is tested, becomes a verdict, may open a case, and inspection labels tune the baselines. Highlights follow that path; counters show rows written this session.&lt;/div&gt;&lt;/div&gt;
+&lt;script&gt;
+const NS=&#x27;http://www.w3.org/2000/svg&#x27;,X=[20,215,410,605,800];
+const D={Feeder:[0,30,[&#x27;id&#x27;,&#x27;name&#x27;]],Transformer:[1,30,[&#x27;id&#x27;,&#x27;feeder_id&#x27;,&#x27;capacity_kva&#x27;]],Branch:[2,30,[&#x27;id&#x27;,&#x27;transformer_id&#x27;]],Home:[3,30,[&#x27;id&#x27;,&#x27;branch_id&#x27;,&#x27;tariff&#x27;]],Meter:[4,30,[&#x27;id&#x27;,&#x27;home_id&#x27;,&#x27;status&#x27;]],
+Window:[1,250,[&#x27;id&#x27;,&#x27;transformer_id&#x27;,&#x27;ts&#x27;,&#x27;input_kwh&#x27;,&#x27;residual&#x27;]],TestResult:[2,250,[&#x27;window_id&#x27;,&#x27;test&#x27;,&#x27;passed&#x27;]],Verdict:[3,250,[&#x27;window_id&#x27;,&#x27;status&#x27;,&#x27;cause&#x27;]],Reading:[4,250,[&#x27;meter_id&#x27;,&#x27;ts&#x27;,&#x27;kwh&#x27;]],
+Baseline:[2,440,[&#x27;scope_id&#x27;,&#x27;routine&#x27;,&#x27;loss_curve&#x27;,&#x27;thresholds&#x27;]],Case:[3,440,[&#x27;id&#x27;,&#x27;target_id&#x27;,&#x27;state&#x27;]],Inspection:[4,440,[&#x27;case_id&#x27;,&#x27;crew&#x27;,&#x27;label&#x27;]]};
+const R=[[&#x27;Feeder&#x27;,&#x27;Transformer&#x27;],[&#x27;Transformer&#x27;,&#x27;Branch&#x27;],[&#x27;Branch&#x27;,&#x27;Home&#x27;],[&#x27;Home&#x27;,&#x27;Meter&#x27;],[&#x27;Meter&#x27;,&#x27;Reading&#x27;],[&#x27;Transformer&#x27;,&#x27;Window&#x27;],[&#x27;Window&#x27;,&#x27;TestResult&#x27;],[&#x27;TestResult&#x27;,&#x27;Verdict&#x27;],[&#x27;Verdict&#x27;,&#x27;Case&#x27;],[&#x27;Case&#x27;,&#x27;Inspection&#x27;],[&#x27;Baseline&#x27;,&#x27;TestResult&#x27;],[&#x27;Inspection&#x27;,&#x27;Baseline&#x27;]];
+const ORDER=[&#x27;Meter&#x27;,&#x27;Reading&#x27;,&#x27;Window&#x27;,&#x27;TestResult&#x27;,&#x27;Verdict&#x27;,&#x27;Case&#x27;,&#x27;Inspection&#x27;,&#x27;Baseline&#x27;],W=160,s=document.getElementById(&#x27;s&#x27;),B={},L={},cnt={};
+const box=n=&gt;{const[c,y,f]=D[n];return{x:X[c],y,w:W,h:30+f.length*16}};
+function mk(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||s).appendChild(e);return e}
+function path(a,b){const A=box(a),C=box(b);if(a==&#x27;Inspection&#x27;&amp;&amp;b==&#x27;Baseline&#x27;){const y=A.y+A.h+30;return[[A.x+W/2,A.y+A.h],[A.x+W/2,y],[C.x+W/2,y],[C.x+W/2,C.y+C.h]]}
+if(A.y==C.y)return A.x&lt;C.x?[[A.x+W,A.y+A.h/2],[C.x,C.y+C.h/2]]:[[A.x,A.y+A.h/2],[C.x+W,C.y+C.h/2]];return A.y&lt;C.y?[[A.x+W/2,A.y+A.h],[C.x+W/2,C.y]]:[[A.x+W/2,A.y],[C.x+W/2,C.y+C.h]]}
+R.forEach(([a,b],i)=&gt;{const p=path(a,b);L[a+b]=mk(&#x27;path&#x27;,{class:&#x27;r&#x27;,d:&#x27;M&#x27;+p.map(q=&gt;q.join(&#x27;,&#x27;)).join(&#x27;L&#x27;)});mk(&#x27;text&#x27;,{class:&#x27;card&#x27;,x:p[0][0]+(p[0][0]==p[1][0]?6:0),y:p[0][1]-(p[0][0]==p[1][0]?-14:6)}).textContent=&#x27;1&#x27;;mk(&#x27;text&#x27;,{class:&#x27;card&#x27;,x:p[p.length-1][0]+(p[0][0]==p[1][0]?6:-12),y:p[p.length-1][1]+(p[0][0]==p[1][0]?-6:-6)}).textContent=&#x27;N&#x27;});
+const dot=mk(&#x27;circle&#x27;,{r:5,fill:&#x27;#5cc8ff&#x27;,opacity:0});
+for(const n in D){const b=box(n),g=mk(&#x27;g&#x27;,{class:&#x27;e&#x27;});B[n]=g;cnt[n]=0;mk(&#x27;rect&#x27;,{x:b.x,y:b.y,width:b.w,height:b.h,rx:8},g);mk(&#x27;text&#x27;,{class:&#x27;h&#x27;,x:b.x+10,y:b.y+18},g).textContent=n;cnt[n+&#x27;t&#x27;]=mk(&#x27;text&#x27;,{class:&#x27;c&#x27;,x:b.x+b.w-8,y:b.y+18},g);
+D[n][2].forEach((c,i)=&gt;mk(&#x27;text&#x27;,{class:&#x27;k&#x27;,x:b.x+10,y:b.y+36+i*16},g).textContent=c);g.onclick=()=&gt;{document.querySelectorAll(&#x27;.e&#x27;).forEach(e=&gt;e.classList.remove(&#x27;sel&#x27;));g.classList.add(&#x27;sel&#x27;);document.getElementById(&#x27;d&#x27;).innerHTML=&#x27;&lt;b style=&quot;color:#e7edf7&quot;&gt;&#x27;+n+&#x27;&lt;/b&gt;&lt;br&gt;&#x27;+D[n][2].join(&#x27;&lt;br&gt;&#x27;)+&#x27;&lt;br&gt;&lt;br&gt;Related: &#x27;+R.filter(r=&gt;r.includes(n)).map(r=&gt;r[0]==n?r[1]:r[0]).join(&#x27;, &#x27;)}}
+let i=0,run=true,T=0;
+function pulse(a,b){const e=L[a+b];if(!e)return;e.classList.add(&#x27;on&#x27;);const len=e.getTotalLength(),t0=performance.now();dot.setAttribute(&#x27;opacity&#x27;,1);(function f(t){const k=Math.min(1,(t-t0)/600),p=e.getPointAtLength(k*len);dot.setAttribute(&#x27;cx&#x27;,p.x);dot.setAttribute(&#x27;cy&#x27;,p.y);if(k&lt;1)requestAnimationFrame(f);else{dot.setAttribute(&#x27;opacity&#x27;,0);e.classList.remove(&#x27;on&#x27;)}})(t0)}
+const TXT={Meter:&#x27;Meters report&#x27;,Reading:&#x27;Readings stored&#x27;,Window:&#x27;Window built, residual computed&#x27;,TestResult:&#x27;Unit and integration tests run&#x27;,Verdict:&#x27;Verdict written&#x27;,Case:&#x27;Case opened if red or amber&#x27;,Inspection:&#x27;Crew inspects and labels&#x27;,Baseline:&#x27;Baselines tuned from the label&#x27;};
+function tick(){if(!run)return;const n=ORDER[i%8],p=ORDER[(i+7)%8];Object.values(B).forEach(g=&gt;g.classList.remove(&#x27;on&#x27;));B[n].classList.add(&#x27;on&#x27;);pulse(p,n);pulse(n,p);cnt[n]+=n==&#x27;Reading&#x27;?24:1;cnt[n+&#x27;t&#x27;].textContent=cnt[n];document.getElementById(&#x27;step&#x27;).textContent=(i%8+1)+&#x27;/8 &#x27;+TXT[n];i++}
+setInterval(tick,1100);tick();document.getElementById(&#x27;pp&#x27;).onclick=e=&gt;{run=!run;e.target.textContent=run?&#x27;Pause&#x27;:&#x27;Resume&#x27;};
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe></div>
+<script>
+
+const $=s=>document.querySelector(s),NT=4,NB=3,NH=4,TB=.03,DB=-.05,RATE=8;
+const homes=[],branches=[];
+for(let t=0;t<NT;t++)for(let b=0;b<NB;b++){branches.push({id:t*NB+b,t,b});for(let k=0;k<NH;k++)homes.push({id:homes.length,t,br:t*NB+b,k,base:.7+Math.random()*1,w:.8+Math.random()*.4});}
+let S,timer=null,script=[];
+const STG=["Validate","Graph build","Unit tests","Integration tests","Verdict","Localize","Plan routes","Field crew","Tune baselines"];
+const META={RED:["Red","Theft or bypass suspected"],"AMBER-TAP":["Amber","Unmetered tap suspected"],"AMBER-DRIFT":["Amber","Meter drift: recalibration ticket open"],"GREEN-LOW":["Green","Genuine low usage, no action"],GREEN:["Green","Healthy, baselines updated"]};
+const prof=h=>.45+.4*Math.exp(-((h-8)**2)/5)+.85*Math.exp(-((h-20)**2)/6);
+function init(){S={tick:0,theft:{},tap:{},drift:{},cus:homes.map(()=>0),bacc:branches.map(()=>0),ema:Array(NT).fill(0),hist:Array.from({length:NT},()=>[]),feed:[],ver:Array(NT).fill("GREEN"),cs:Array(NT).fill(null),excl:{},sup:Array(NT).fill([]),kw:Array(NT).fill(0),log:[],labels:0,rec:0,sel:0};say("System ready. All 4 transformers healthy.")}
+function say(m){S.log.unshift(`<b>${clock()}</b> ${m}`);S.log=S.log.slice(0,40)}
+function clock(){const m=(6*60+S.tick*30)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function step(){
+ S.tick++;const p=prof(((6+S.tick*.5)%24));let fi=0,fm=0;
+ for(let t=0;t<NT;t++){
+  let act=0,mt=0;
+  homes.forEach(h=>{if(h.t!==t)return;const a=h.base*p*(1+(Math.random()-.5)*.08);let r=a;
+   if(S.theft[h.id])r=a*.15;if(S.drift[t])r*=1.15;
+   S.cus[h.id]=Math.max(0,S.cus[h.id]*.9+(1-r/(h.base*p))-.12);act+=a;mt+=r});
+  branches.forEach(b=>{if(b.t===t&&S.tap[b.id])act+=1.5*p});
+  const inp=act*1.025*(1+(Math.random()-.5)*.01),res=inp-mt-inp*.0244,pct=res/inp;
+  S.ema[t]=.5*S.ema[t]+.5*pct;S.kw[t]=Math.max(0,res*S.ema[t]/pct||0);
+  S.hist[t].push(S.ema[t]);if(S.hist[t].length>40)S.hist[t].shift();fi+=inp;fm+=mt;
+  const bal=S.ema[t]>TB,bias=S.ema[t]<DB,hf=homes.some(h=>h.t===t&&S.cus[h.id]>.7);
+  const v=bal&&hf?"RED":bal?"AMBER-TAP":bias?"AMBER-DRIFT":hf?"GREEN-LOW":"GREEN";S.ver[t]=v;
+  let list=[];
+  if(v==="RED"){list=homes.filter(h=>h.t===t&&S.cus[h.id]>.15&&!S.excl["h"+h.id]).map(h=>({type:"home",id:h.id,label:`Home H${h.id+1} · B${h.br+1}`,s:S.cus[h.id]*h.w}))}
+  branches.forEach(b=>{if(b.t!==t)return;S.bacc[b.id]=v==="AMBER-TAP"?S.bacc[b.id]*.9+(S.tap[b.id]?.6:0)+Math.random()*.5:S.bacc[b.id]*.5;
+   if(v==="AMBER-TAP"&&!S.excl["b"+b.id])list.push({type:"branch",id:b.id,label:`Branch B${b.id+1}`,s:S.bacc[b.id]})});
+  list.sort((a,b)=>b.s-a.s);list=list.slice(0,3);const tot=list.reduce((a,x)=>a+x.s,0)||1;list.forEach(x=>x.conf=x.s/tot);S.sup[t]=list;
+  if(v==="AMBER-DRIFT"&&!S.cs[t]){S.cs[t]={eta:4,drift:1};say(`T${t+1} balance bias is negative: recalibration ticket opened.`)}
+  if(S.auto&&!S.cs[t]&&list[0]&&list[0].conf>.55&&(v==="RED"||v==="AMBER-TAP"))dispatch(t);
+  const c=S.cs[t];
+  if(c&&--c.eta<=0){
+   if(c.drift){delete S.drift[t];S.labels++;say(`T${t+1} meter recalibrated. Residual should return to baseline.`)}
+   else{const s=c.s,hit=s.type==="home"?S.theft[s.id]:S.tap[s.id];
+    if(hit){delete(s.type==="home"?S.theft:S.tap)[s.id];S.labels++;S.rec+=c.kw*720*RATE;say(`Crew confirmed ${s.label}. Label fed back to tune thresholds and weights.`)}
+    else{S.excl[(s.type==="home"?"h":"b")+s.id]=1;say(`False lead at ${s.label}. Case reopened as an event trigger.`)}}
+   S.cs[t]=null}
+ }
+ S.feed.push({i:fi,m:fm});if(S.feed.length>40)S.feed.shift();
+ render();
+}
+function dispatch(t){const s=S.sup[t][0];if(!s||S.cs[t])return;S.cs[t]={eta:3,s,kw:S.kw[t]};say(`Route planned: crew to ${s.label} (${(s.conf*100|0)}% confidence).`);render()}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function theft(){const h=pick(homes.filter(h=>!S.theft[h.id]));S.theft[h.id]=1;say("Simulation: a meter bypass was injected.");S.cs&&render()}
+function tap(){const b=pick(branches.filter(b=>!S.tap[b.id]));S.tap[b.id]=1;say("Simulation: an unmetered tap was injected.");render()}
+function drift(){const t=pick([0,1,2,3].filter(t=>!S.drift[t]));S.drift[t]=1;say("Simulation: a meter began to drift.");render()}
+// network drawing
+const X={f:40,t:190,b:350,h:470},by=(t,b)=>40+t*108+b*32,ty=t=>by(t,1);
+function build(){let s="";
+ for(let t=0;t<NT;t++){s+=`<line class="flow" x1="${X.f}" y1="225" x2="${X.t}" y2="${ty(t)}"/>`;
+  for(let b=0;b<NB;b++){s+=`<line class="flow" x1="${X.t}" y1="${ty(t)}" x2="${X.b}" y2="${by(t,b)}"/>`;
+   for(let k=0;k<NH;k++)s+=`<line class="edge" x1="${X.b}" y1="${by(t,b)}" x2="${X.h+k*40}" y2="${by(t,b)}"/>`}}
+ s+=`<rect x="14" y="205" width="52" height="40" rx="8" fill="var(--flow)"/><text x="40" y="230" text-anchor="middle" fill="#04121c" font-weight="800" font-size="12">Feeder</text>`;
+ for(let t=0;t<NT;t++){s+=`<g data-s="${t}" style="cursor:pointer"><rect id="tr${t}" x="${X.t-26}" y="${ty(t)-18}" width="52" height="36" rx="8" fill="var(--green)"/><text x="${X.t}" y="${ty(t)+5}" text-anchor="middle" fill="#04121c" font-weight="800" font-size="13">T${t+1}</text><rect id="tsel${t}" x="${X.t-30}" y="${ty(t)-22}" width="60" height="44" rx="10" fill="none" stroke="var(--flow)" stroke-width="2"/></g>`}
+ branches.forEach(b=>{const y=by(b.t,b.b);s+=`<circle id="br${b.id}" cx="${X.b}" cy="${y}" r="8" fill="var(--panel)" stroke="var(--mute)" stroke-width="2"/><circle id="bg${b.id}" cx="${X.b}" cy="${y}" r="13" class="gt" opacity="0"/><text class="lbl" x="${X.b-22}" y="${y+4}" text-anchor="end">B${b.id+1}</text>`});
+ homes.forEach(h=>{const y=by(h.t,h.br%NB);s+=`<circle id="hm${h.id}" cx="${X.h+h.k*40}" cy="${y}" r="7" fill="var(--mute)" opacity=".55"/><circle id="hg${h.id}" cx="${X.h+h.k*40}" cy="${y}" r="11" class="gt" opacity="0"/>`});
+ s+=`<text class="lbl" x="${X.h}" y="14">Homes (4 per branch)</text>`;$("#net").innerHTML=s}
+function colorOf(v){return v==="RED"?"var(--red)":v.startsWith("AMBER")?"var(--amber)":"var(--green)"}
+function curve(arr,min,max,w=400,h=140,pad=14){const n=arr.length;return arr.map((v,i)=>`${i?"L":"M"}${(pad+(w-2*pad)*i/Math.max(39,n-1)).toFixed(1)},${(h-pad-(h-2*pad)*Math.min(1,Math.max(0,(v-min)/(max-min)))).toFixed(1)}`).join("")}
+function render(){
+ $("#clk").textContent=clock();$("#day").textContent="Simulated time";
+ const gt=$("#gt").checked;
+ S.ver.forEach((v,t)=>{$("#tr"+t).setAttribute("fill",colorOf(v));$("#tsel"+t).setAttribute("opacity",S.sel===t?1:0);
+  if(gt)$("#tr"+t).style.strokeDasharray=S.drift[t]?"4 3":"";else $("#tr"+t).style.strokeDasharray=""});
+ branches.forEach(b=>{const s=S.sup[b.t].find(x=>x.type==="branch"&&x.id===b.id),c=s?s.conf:0,r=$("#br"+b.id);
+  r.setAttribute("r",8+c*8);r.setAttribute("stroke",c>.3?"var(--amber)":"var(--mute)");r.setAttribute("fill",c>.3?"var(--amber)":"var(--panel)");
+  $("#bg"+b.id).setAttribute("opacity",gt&&S.tap[b.id]?1:0)});
+ homes.forEach(h=>{const s=S.sup[h.t].find(x=>x.type==="home"&&x.id===h.id),c=s?s.conf:0,e=$("#hm"+h.id);
+  e.setAttribute("r",7+c*6);e.setAttribute("fill",c>.25?"var(--red)":"var(--mute)");e.setAttribute("opacity",c>.25?1:.55);
+  $("#hg"+h.id).setAttribute("opacity",gt&&S.theft[h.id]?1:0)});
+ let h="";
+ S.ver.forEach((v,t)=>{const[m,txt]=META[v],pct=S.ema[t]*100,cs=S.cs[t];
+  h+=`<div class="tr ${S.sel===t?"sel":""}" data-s="${t}"><div class="row"><b>Transformer T${t+1}</b><span class="pill ${m}">${m}</span></div>
+  <div class="row sub"><span>${txt}</span><span>residual ${pct>=0?"+":""}${pct.toFixed(1)}%</span></div>`;
+  S.sup[t].forEach(s=>{h+=`<div class="sus"><span>${s.label}</span><div class="meter"><div style="width:${s.conf*100}%"></div></div><span>${(s.conf*100|0)}%</span></div>`});
+  if(cs)h+=`<div class="sub">${cs.drift?"Recalibration ticket in progress":"Crew en route to "+cs.s.label}, arriving in ${cs.eta} windows</div>`;
+  else if(S.sup[t].length)h+=`<div><button data-d="${t}">Send crew to top suspect</button></div>`;
+  h+=`</div>`});
+ $("#panel").innerHTML=h;
+ $("#cAt").innerHTML=`Balance test residual <span>T${S.sel+1}, % of input</span>`;
+ const hs=S.hist[S.sel],yz=v=>(140-14-112*(v+.1)/.3).toFixed(1);
+ $("#cA").innerHTML=`<rect x="14" y="${yz(.3)}" width="372" height="${(yz(TB)-yz(.3)).toFixed(1)}" fill="var(--red)" opacity=".09"/><line x1="14" x2="386" y1="${yz(TB)}" y2="${yz(TB)}" stroke="var(--red)" stroke-dasharray="4 4"/><line x1="14" x2="386" y1="${yz(DB)}" y2="${yz(DB)}" stroke="var(--amber)" stroke-dasharray="4 4"/><line x1="14" x2="386" y1="${yz(0)}" y2="${yz(0)}" stroke="var(--line)"/><path d="${curve(hs,-.1,.2)}" fill="none" stroke="var(--flow)" stroke-width="2.5"/>`;
+ const fd=S.feed,mx=Math.max(1,...fd.map(d=>d.i))*1.1,a=curve(fd.map(d=>d.i),0,mx),m=curve(fd.map(d=>d.m),0,mx);
+ const rev=curve(fd.map(d=>d.m),0,mx).split("L").reverse().join("L").replace(/^M/,"").replace(/^/,"L").replace(/L?$/,"");
+ const mm=fd.map((d,i)=>[14+372*i/39,140-14-112*d.m/mx]).reverse().map(q=>`L${q[0].toFixed(1)},${q[1].toFixed(1)}`).join("");
+ $("#cB").innerHTML=fd.length?`<path d="${a}${mm}Z" fill="var(--red)" opacity=".28"/><path d="${a}" fill="none" stroke="var(--flow)" stroke-width="2.5"/><path d="${m}" fill="none" stroke="var(--green)" stroke-width="2.5"/>`:"";
+ const kw=S.kw.reduce((a,b)=>a+b,0),open=S.ver.filter(v=>v==="RED"||v.startsWith("AMBER")).length;
+ $("#k1").textContent=kw.toFixed(1)+" kW";$("#k2").textContent=open;$("#k3").textContent=S.labels;$("#k4").textContent="₹"+Math.round(S.rec).toLocaleString("en-IN");
+ const l=fd.slice(-24),ti=l.reduce((a,d)=>a+d.i,0),tm=l.reduce((a,d)=>a+d.m,0);$("#k5").textContent=ti?((ti-tm)/ti*100).toFixed(1)+"%":"0%";
+ $("#log").innerHTML=S.log.map(x=>`<li>${x}</li>`).join("");
+}
+function pipeAnim(){const els=[...document.querySelectorAll("#pipe i")],act=S.ver.some(v=>v==="RED"||v.startsWith("AMBER")),field=S.cs.some(Boolean);
+ els.forEach((e,i)=>{e.classList.remove("on");e.classList.toggle("off",(i===5||i===6)&&!act||i===7&&!field);setTimeout(()=>{els.forEach(x=>x.classList.remove("on"));e.classList.add("on")},i*60)})}
+function tick(){step();pipeAnim();script.filter(s=>s.at===S.tick).forEach(s=>s.fn())}
+function setPlay(on){clearInterval(timer);timer=null;if(on)timer=setInterval(tick,1100/(+$("#spd").value));$("#play").textContent=on?"Pause":"Play"}
+$("#play").onclick=()=>setPlay(!timer);$("#spd").onchange=()=>timer&&setPlay(true);
+$("#bTheft").onclick=theft;$("#bTap").onclick=tap;$("#bDrift").onclick=drift;
+$("#reset").onclick=()=>{script=[];setPlay(false);init();render()};
+$("#auto").onchange=e=>S.auto=e.target.checked;$("#gt").onchange=render;
+$("#demo").onclick=()=>{setPlay(false);init();$("#auto").checked=true;S.auto=true;$("#spd").value="2";
+ script=[{at:3,fn:theft},{at:14,fn:tap},{at:28,fn:drift},{at:38,fn:theft}];setPlay(true)};
+$("#panel").onclick=e=>{const d=e.target.closest("[data-d]");if(d){dispatch(+d.dataset.d);return}const s=e.target.closest("[data-s]");if(s){S.sel=+s.dataset.s;render()}};
+$("#net").onclick=e=>{const s=e.target.closest("[data-s]");if(s){S.sel=+s.dataset.s;render()}};
+$("#pipe").innerHTML=STG.map(s=>`<i>${s}</i>`).join("");
+build();init();for(let i=0;i<12;i++)step();S.log=[];say("Baselines learned over 12 healthy windows. Press Run judge demo.");render();
+</script><script>
+/* views stay loaded and keep running when hidden, so simulations never reset */
+document.getElementById('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+document.querySelectorAll('#views iframe').forEach(f=>{const on=f.id===b.dataset.v;if(on&&f.dataset.src&&!f.src&&!f.hasAttribute('srcdoc'))f.src=f.dataset.src;f.classList.toggle('on',on)});
+document.querySelector('.wrap').style.visibility=b.dataset.v?'hidden':'visible'};
+</script>
+</body></html>
